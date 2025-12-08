@@ -65,7 +65,7 @@ $Report += "[6] Critical Services"
 foreach ($svc in $CriticalServices) {
     $s = Get-Service $svc -ErrorAction SilentlyContinue
     if ($s) {
-        $Report += "$svc: $($s.Status)"
+        $Report += ($svc + ": " + $s.Status)
     }
 }
 $Report += ""
