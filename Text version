@@ -83,3 +83,4 @@ $Report += ""
 
 # Output to RMM
 $Report -join "`n"
+Copy-Item "C:\Reports\MonthlyReport.html" "$env:ProgramData\Asio\Agent\Files\MonthlyReport.html"
