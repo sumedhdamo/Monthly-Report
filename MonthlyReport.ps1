@@ -88,3 +88,4 @@ $($DiskIO | ConvertTo-Html -Fragment)
 
 $HTML | Out-File $ReportFile -Encoding utf8
 Write-Output "Report generated: $ReportFile"
+Copy-Item "C:\Reports\MonthlyReport.html" "$env:ProgramData\Asio\Agent\Files\MonthlyReport.html"
