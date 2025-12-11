@@ -3,6 +3,7 @@ $Report = @()
 
 $Report += "===== Monthly Server Report ====="
 $Report += "Server: $env:COMPUTERNAME"
+$Report += (Get-date).ToString()
 $Report += ""
 
 # --- 1. Disk Space ---
@@ -67,17 +68,6 @@ foreach ($svc in $CriticalServices) {
         $Report += ($svc + ": " + $s.Status)
     }
 }
-$Report += ""
-
-# --- 7. Disk I/O ---
-$ReadMS  = (Get-Counter "\PhysicalDisk(_Total)\Avg. Disk sec/Read").CounterSamples.CookedValue * 1000
-$WriteMS = (Get-Counter "\PhysicalDisk(_Total)\Avg. Disk sec/Write").CounterSamples.CookedValue * 1000
-$Queue   = (Get-Counter "\PhysicalDisk(_Total)\Avg. Disk Queue Length").CounterSamples.CookedValue
-
-$Report += "[7] Disk I/O"
-$Report += "Read Latency:  $([math]::Round($ReadMS,2)) ms"
-$Report += "Write Latency: $([math]::Round($WriteMS,2)) ms"
-$Report += "Queue Length:  $([math]::Round($Queue,2))"
 $Report += ""
 
 # Output to RMM
