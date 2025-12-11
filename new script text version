@@ -1,0 +1,81 @@
+$Report = @()
+
+$Report += "===== Monthly Server Report ====="
+$Report += "Server: $env:COMPUTERNAME"
+$Report += (Get-date).ToString()
+$Report += ""
+
+# --- 1. Disk Space ---
+$Report += "[1] Disk Space"
+$Disks = Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3"
+foreach ($d in $Disks) {
+    $size = [math]::Round($d.Size/1GB,2)
+    $free = [math]::Round($d.FreeSpace/1GB,2)
+    $pct  = [math]::Round(($d.FreeSpace/$d.Size)*100,2)
+    $Report += "$($d.DeviceID): $size GB total / $free GB free ($pct%)"
+}
+$Report += ""
+
+# --- 2. CPU & Memory ---
+$CPU = (Get-WmiObject Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+$Mem = Get-CimInstance Win32_OperatingSystem
+$UsedMemGB = [math]::Round((($Mem.TotalVisibleMemorySize - $Mem.FreePhysicalMemory) / 1MB),2)
+$TotalMemGB = [math]::Round(($Mem.TotalVisibleMemorySize / 1MB),2)
+
+$Report += "[2] CPU & Memory"
+$Report += "CPU Load: $CPU%"
+$Report += "Memory Used: $UsedMemGB GB / $TotalMemGB GB"
+$Report += ""
+
+# --- 3. Reboot Pending ---
+$PendingReboot = Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending"
+
+$Report += "[3] Windows Update / Reboot Pending"
+$Report += "Pending Reboot: $PendingReboot"
+$Report += ""
+
+# --- 4. SentinelOne Status ---
+$AV = Get-Service | Where-Object {$_.Name -like "Sentinel*"} | Select-Object -First 1
+
+$Report += "[4] SentinelOne Status"
+if ($AV) {
+    $Report += "SentinelOne service: $($AV.Status)"
+} else {
+    $Report += "SentinelOne service: NOT FOUND"
+}
+$Report += ""
+
+# --- 5. Event Logs (Critical/Errors/Warnings - last 7 days) ---
+$Report += "[5] Event Logs (Critical, Errors, Warnings - Last 7 Days)"
+$Events = Get-WinEvent -FilterHashtable @{
+    LogName = @("System","Application")
+    Level = @(1,2,3)
+    StartTime = (Get-Date).AddDays(-7)
+} | Select-Object -First 10
+
+foreach ($e in $Events) {
+
+    # Handle null messages safely
+    if ([string]::IsNullOrEmpty($e.Message)) {
+        $msg = "<No Message>"
+    } else {
+        $msg = $e.Message.Substring(0, [Math]::Min(40, $e.Message.Length))
+    }
+
+    $Report += "$($e.TimeCreated) | $($e.LevelDisplayName) | $($e.ProviderName) | ID $($e.Id) | $msg..."
+}
+$Report += ""
+
+# --- 6. Critical Services ---
+$CriticalServices = "Dnscache","LanmanServer","W32Time","Spooler","NTDS"
+$Report += "[6] Critical Services"
+foreach ($svc in $CriticalServices) {
+    $s = Get-Service $svc -ErrorAction SilentlyContinue
+    if ($s) {
+        $Report += ($svc + ": " + $s.Status)
+    }
+}
+$Report += ""
+
+# Output to RMM
+$Report -join "`n"
