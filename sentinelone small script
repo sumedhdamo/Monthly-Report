@@ -3,13 +3,3 @@ if (Get-Service -Name SentinelAgent -ErrorAction SilentlyContinue) {
 } else {
     Write-Output "SentinelOne NOT INSTALLED"
 }
-
-
-
-if (Get-Service -Name SentinelAgent -ErrorAction SilentlyContinue) {
-    Write-Output "SentinelOne INSTALLED"
-    exit 0
-} else {
-    Write-Output "SentinelOne NOT INSTALLED"
-    exit 1
-}
