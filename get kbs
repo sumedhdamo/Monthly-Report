@@ -1,11 +1,23 @@
 param(
-  [Parameter(Mandatory=$false)]
   [string]$ComputerName = $env:COMPUTERNAME,
-
   [int]$Top = 5
 )
 
-Get-HotFix -ComputerName $ComputerName |
+$Report = @()
+$Report += "===== Monthly Server Report ====="
+$Report += "Server: $ComputerName"
+$Report += (Get-Date).ToString()
+$Report += ""
+
+# Hotfix section (now appears under header)
+$HotfixText = Get-HotFix -ComputerName $ComputerName |
   Where-Object { $_.InstalledOn } |
   Sort-Object InstalledOn -Descending |
-  Select-Object -First $Top HotFixID, InstalledOn, Description, InstalledBy
+  Select-Object -First $Top HotFixID, InstalledOn, Description, InstalledBy |
+  Format-Table -AutoSize | Out-String
+
+$Report += "[0] Latest Hotfixes (Top $Top)"
+$Report += $HotfixText.TrimEnd()
+$Report += ""
+
+# ...then your disk/cpu/etc sections continue...
