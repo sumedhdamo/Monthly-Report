@@ -1,0 +1,11 @@
+param(
+  [Parameter(Mandatory=$false)]
+  [string]$ComputerName = $env:COMPUTERNAME,
+
+  [int]$Top = 5
+)
+
+Get-HotFix -ComputerName $ComputerName |
+  Where-Object { $_.InstalledOn } |
+  Sort-Object InstalledOn -Descending |
+  Select-Object -First $Top HotFixID, InstalledOn, Description, InstalledBy
