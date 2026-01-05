@@ -1,10 +1,24 @@
-$Report = @()
+param(
+  [string]$ComputerName = $env:COMPUTERNAME,
+  [int]$Top = 5
+)
 
+$Report = @()
 $Report += "===== Monthly Server Report ====="
-$Report += "Server: $env:COMPUTERNAME"
-$Report += (Get-date).ToString()
+$Report += "Server: $ComputerName"
+$Report += (Get-Date).ToString()
 $Report += ""
 
+# Hotfix section (now appears under header)
+$HotfixText = Get-HotFix -ComputerName $ComputerName |
+  Where-Object { $_.InstalledOn } |
+  Sort-Object InstalledOn -Descending |
+  Select-Object -First $Top HotFixID, InstalledOn, Description, InstalledBy |
+  Format-Table -AutoSize | Out-String
+
+$Report += "[0] Latest Hotfixes (Top $Top)"
+$Report += $HotfixText.TrimEnd()
+$Report += ""
 # --- 1. Disk Space ---
 $Report += "[1] Disk Space"
 $Disks = Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3"
@@ -54,7 +68,15 @@ $Events = Get-WinEvent -FilterHashtable @{
 } | Select-Object -First 10
 
 foreach ($e in $Events) {
-    $Report += "$($e.TimeCreated) | $($e.LevelDisplayName) | $($e.ProviderName) | ID $($e.Id) | $($e.Message.Substring(0,[Math]::Min(40,$e.Message.Length)))..."
+
+    # Handle null messages safely
+    if ([string]::IsNullOrEmpty($e.Message)) {
+        $msg = "<No Message>"
+    } else {
+        $msg = $e.Message.Substring(0, [Math]::Min(40, $e.Message.Length))
+    }
+
+    $Report += "$($e.TimeCreated) | $($e.LevelDisplayName) | $($e.ProviderName) | ID $($e.Id) | $msg..."
 }
 $Report += ""
 
